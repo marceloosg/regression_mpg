@@ -1,0 +1,187 @@
+---
+title: "Mileage per Gallon vs Transmission type"
+author: "Marcelo Guimarães"
+date: "August 27, 2016"
+output: pdf_document
+fontsize: 10pt
+---
+```{r global_options, include=FALSE,results="markup" ,fig.show="hide"}
+library(knitr)
+opts_chunk$set(echo=FALSE,cache=TRUE
+               ,results="hide" ,fig.show="hide",messages=FALSE
+               )
+opts_chunk$set(fig.width=6.5, fig.height=3.5)
+
+#source("caption.R")
+
+
+```
+# Summary
+
+* This is a report for the Assignment: "Regression Models Course Project".
+We conducted an exploratory analysis of the data,  in which , the data were probed for confounding variables and only the most relevant variables for analysis were retained. A naive regression of **MPG** as a function of **am** (**mpg ~ am**) indicates that  Manual cars spend on average **7.25 $\pm$ 2.89**  more MPG over Automatic cars (84% confidence interval, 1 std). However, no significant difference (**p-value** > 0.89) in mileage per gas between manual and automatic cars was found when the analysis account for weight and the number of cylinders as explanatory variables (**adj. R²** = 0.82, **p-value** << 0.05 for **mpg ~ wt+cyl** ).
+
+# Introduction 
+The task problem of this assignment consists in determining the relationship between  a set of variables and miles per gallon (mpg), specifically it will address two questions: 
+*Is an automatic or manual transmission better for MPG?*
+*What is the quantitative MPG difference between the transmissions?*
+
+#Section 1 (Exploratory analysis -Heatmap and Dendogram)
+The data for analysis is found in a data frame with 32 observations on 11 variables. In order to select the most relevant variables to the analysis a heatmap  ( see Figure 1) is created using the correlation between the variables as metric of distance. 
+```{r ,ref.label="hm" ,message=FALSE,warning=FALSE}
+```
+Observing the dendogram Fig. 1 b), 3 groups can be seen at height 0.5.
+The first group contains the output variable **MPG** and the third group contains the variable of interest **am**. 
+We select only the first group and the **am** variable for in-depth exploratory analysis.
+
+#Section 2  (Exploratory analysis -Plot Matrix of variables)
+After selecting the most relevant variables we can summarize the relationship between them in a plot matrix (Figure 2).There is a lot of information in this Figure. The most correlated variables with **MPG** is **wt** (*weight*) and **cyl** (*# of cylinders*).  **Note:** *Displacement is highly correlated with mpg, but is also correlated with # of cylinders (90%),  we kept the cylinders variable since it is more correlated with mpg than the displacement and horse power.*
+The boxplot (Fig. 2, last column) for **MPG** for each **am** group indicates that the manual transmission (**am**=1) cars have higher mpg mean than the automatic ones (**am**=0). However, the **am** variable is highly correlated with other explanatory variables.
+For instance, there is a `r cor(mtcars$am,dt$wt)` correlation between **am** (transmission type) and **wt** (weight). In this case It is expected that most of the variance of **MPG** can be explained by the **wt** and **cyl** variables. That is, the difference in mpg due to **am** should not be significant when other variables are considered. 
+
+The amount of cylinders, and weight that defines the mileage. If we maintain these characteristics fixed we should see no mileage difference between automatic and manual transmission cars. 
+To confirm that hypothesis a multivariate regression of the most correlated variables is performed in the following section.
+
+#Section 3 (Analysis: Regressions)
+```{r,ref.label="la" }
+```
+A naive regression (mpg ~ am) would indicate a significant (**p-value**=0.0003,
+**adj. R²**=`r la$adj.r.squared`) mileage difference (7.2) between automatic and manual cars:
+```{r la,echo=FALSE,results='markup'}
+la=summary(lm(mpg ~ am,data=mtcars))
+coef(la)[2,1:4]
+```
+However, the residue is strongly correlated with the output (see Figure 3).
+```{r ,ref.label="residual" }
+```
+A plot of the MPG regressed by the most correlated variable ***wt*** and grouped by transmission **am** can be seen at Figure 4. The regression of the whole data (blue line) is inside the confidence interval for the regression of each group data (manual and automatic cars). This indicates that the transmission does not explain the difference in mileage, as It can be seen from the regression statistics (mpg ~ wt+am): 
+```{r, echo=FALSE,results='markup'}
+lwa=(lm(mpg ~ wt+am,data=dt))
+slwa=summary(lwa)
+coef(slwa)[2:3,1:4]
+```
+The p-value for the **am** variable is not significant (**p-value**=0.988 > 0.05,**adj. R²**= `r slwa$adj.r.squared`). It is clear that the residuals are less correlated with MPG when **wt** is added as a regressor, but a separation between groups (**am**) can still be distinguished (Figure 5). The next steps is to include the *number of cylinders* variable in the analysis:
+```{r,echo=FALSE,results='markup'}
+
+lwc=lm(mpg ~ wt+cyl,data=dt)
+slwc=summary(lwc)
+data.table(fit="mpg ~ wt+cyl", Adjusted_R2=slwc$adj.r.squared[1])
+coef(slwc)
+#print(lwc)
+```
+
+It can be inferred from that analysis that the weight and number of cylinders alone can predict most of **MPG** data (see Figure 6), which can be confirmed analyzing the residuals (Figure 7). From the adjusted R² It can be inferred that the *weight* and *# of cylinders* can explain 81.85% of the variance of the output. Adding the am variable reduces the explained variance per degree of freedom of the fit:
+
+```{r,echo=FALSE,results='markup'}
+library(data.table)
+lwca=lm(mpg ~ wt+cyl+am,data=dt)
+slwca=summary(lwca)
+data.table(fit="mpg ~ wt+cyl+am", Adjusted_R2=slwca$adj.r.squared[1])
+coef(slwca)
+#print(lwc)
+```
+
+#Section 4 (Conclusion)
+In this report a review of the mtcars data were performed in order to answer the question of how much mileage (if any) does the manual cars spend over automatic ones. A naive regression of **MPG** as a function of **am** indicates that  Manual cars spend on average **7.25 $\pm$ 2.89**  more MPG over Automatic cars (84% confidence interval, 1 std). However, as it was verified, the mileage difference is mainly due to the difference of weight and number of cylinders (**R² = 0.82**). An analysis maintaining these variables constant showed that there is no significant change in mileage (**am1=0.176 ;p-value > 0.89**) for cars with different transmission.
+```{r,ref.label="r1"}
+```
+```{r,ref.label="r2"}
+```
+```{r,ref.label="r3"}
+```
+
+
+#Appendix
+
+```{r hm,results="markup",fig.show="asis"} 
+
+library(ggplot2)
+library(data.table)
+library(caret)
+par("mfrow"=c(1,2))
+dt=data.table(mtcars)
+dt$am=as.factor(dt$am)
+dt.m=melt(mtcars,id.var="am")
+dt.m$am=as.factor(dt.m$am)
+p <- ggplot(data = dt.m, aes(x=variable, y=value,fill=am )) +geom_boxplot()+facet_wrap(~ variable,ncol=2,scales="free")
+cu=abs(cor(mtcars))
+par(mar=c(5,2,2,2)+0.1,cex.main=0.8)
+
+he=heatmap(cu, symm = TRUE, col = topo.colors(4),distfun = function(c) as.dist(1-c) , keep.dendro = TRUE , main="a) Heatmap of data using correlation as distance metric",xlab="Figure 1. a)")
+#heplot=recordPlot()
+plot(he$Colv,horiz=TRUE,main="b) Dendogram cut at height=0.5",xlab="Figure 1. b)")
+abline(v=0.5,col="red")
+
+```
+
+
+```{r,message=FALSE,results="markup",fig.show="asis",echo=FALSE,fig.height=5}
+library(GGally)
+library(dplyr)
+dt.f=select(dt,c(1,2:4,6,9))
+ggpairs(dt.f,upper=list(continuous="smooth",discrete="box") ,lower=list(continuous="cor"),diag=list(continuous="barDiag"),title= "Figure 2. Plot matrix of most correlated variables")
+```
+
+----
+
+```{r residual,results="markup",fig.show="asis",echo=FALSE,fig.width=12.0}
+Residuals=la$residuals
+MPG=mtcars$mpg
+par(mfrow=c(2,2))
+par(mar=c(2,2,2,2))
+plot(Residuals ~ MPG,col=dt$am,pch=dt$cyl,main="Figure 3. Residuals(mpg ~ am) vs MPG")
+legend("topleft",legend=c("Automatic", "Manual"),text.col=c("black" ,"red"),title="Transmission")
+ legend("bottomright",legend=seq(4,8,2), pch=seq(4,8,2),title = "# cylinders")
+
+```
+
+```{r,results="markup",fig.show="asis",echo=FALSE,height=3.0}
+qp=qplot(wt,mpg,data=dt,colour=am)
+qp=qp+geom_smooth(aes(group=am),stat="smooth",method="lm",level=.95,show.legend = TRUE)
+qp=qp+geom_smooth(data=mtcars,aes(x=wt,y=mpg,linetype="regression"),method="lm",se = FALSE)
+qp=qp+ggtitle("Figure 4. MPG vs wt grouped by am"  )
+qp
+```
+
+```{r r1,results="markup",fig.show="asis",echo=FALSE,fig.height=3.5}
+lwa=(lm(mpg ~ wt+am,data=dt))
+Residuals2=lwa$residuals
+plot(Residuals2 ~ MPG,col=dt$am,pch=dt$cyl,main="Figure 5. Residuals (mpg ~ wt+am) vs MPG")
+ abline(h=0,col="purple",lwd=2)
+op <- par(bg = "white")
+legend("topleft",legend=c("Automatic","Manual"),
+       text.col=c("black" ,"red"),title="Transmission")
+legend("bottomright",legend=seq(4,8,2), pch=seq(4,8,2),title = "# cylinders")
+
+```
+```{r r2,results="markup",fig.show="asis",echo=FALSE}
+s=1:30;s=setdiff(s,which(dt$mpg > 31))
+corlwa=cor(Residuals2,dt$mpg)
+no_outliers_corlwa=cor(Residuals2[s],dt$mpg[s])
+```
+
+
+```{r,results="markup",fig.show="asis",echo=FALSE,fig.height=2.8}
+dt$cyl=as.factor(dt$cyl)
+qp=qplot(wt,mpg,data=dt,colour=am)
+qp=qp+geom_point(mapping=aes(shape=as.factor(cyl),size=3,alpha=0.5),show.legend = TRUE )
+qp=qp+geom_smooth(aes(group=cyl),stat="smooth",method="lm",level=.95,show.legend = FALSE)
+qp=qp+ggtitle("Figure 6. MPG vs wt grouped by cyl, am"  )
+qp
+```
+
+```{r r3,results="markup",fig.show="asis",echo=FALSE,fig.height=5}
+lwc=(lm(mpg ~ wt+cyl,data=dt))
+Residuals3=lwc$residuals
+corlwc=cor(Residuals3,dt$mpg)
+no_outliers_corlwc=cor(Residuals3[s],dt$mpg[s])
+#plot(Residuals3 ~ mpg,data=dt,col=am,pch=as.numeric(as.character(cyl) ),
+#     main="Figure 7. Residuals (mpg ~ wt+cyl) vs MPG")
+#legend("topleft",legend=c("Automatic", "Manual"),text.col=c("black" ,"red"),title="Transmission")
+# legend("bottomright",legend=seq(4,8,2), pch=seq(4,8,2),title = "# cylinders")
+# abline(h=0,col="purple",lwd=2)
+par(mfrow=c(2,2))
+par(mar=c(2,2,2,2))
+print("Figure 7 Residual plot: plot(lm(mpg ~ wt+cyl,data=dt))")
+plot(lwc)
+```
